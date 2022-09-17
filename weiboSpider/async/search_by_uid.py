@@ -1,19 +1,15 @@
+import logging
 import asyncio
+import aiohttp
 import re
-
-from lxml import etree
 from opencc import OpenCC
 from parsel import Selector
-
-from requests import Request, session
-import aiohttp
-
 from random import Random
 
-# UID = 6593199887  # 原神
+UID = 6593199887  # 原神
 # UID = 7643376782  # 崩坏3
 # UID = 6415164493  # 米哈游
-UID = 1878206395  # 张继科
+# UID = 1878206395  # 张继科
 # UID = 1686532492  # 撒贝宁
 # UID = 1776448504  # 蔡徐坤
 # UID = 1699432410  # 新华社
@@ -63,57 +59,48 @@ MY_HEADERS = [{
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'}
 ]
 
-session = session()
+# aio_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False))
 CONCURRENCY = 5
 semaphore = asyncio.Semaphore(CONCURRENCY)
 randomizer = Random()
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(levelname)s   %(filename)s [line:%(lineno)d]  %(message)s  %(asctime)s',
+    filename='by_uid.log',
+    filemode='w',
+    encoding='utf-8'
+)
+logger = logging.getLogger()
 
 
-def get_url(index=None):
+async def get_url(index=None):
     """
-    :param index: int
-    :return: get_url_api(params=None)
+    :param index: page
+    :return: weibo_list, page
     """
-    if index is None or index == 1:
-        return get_url_api()
+    response = await scrape_index(TARGET_URL, index)
+    # 解析url
+    selector = Selector(text=response)
+    url_list = selector.xpath('//div[@class="c"]/div/a[@class="cc"]/@href').getall()  # 获取本页所有评论链接
+    # url清洗
+    weibo_list, zhuanfa_list = clean_url(url_list)
+    # 获取页数
+    page = ''
+    temp = selector.xpath('//div[@id="pagelist"]//div/text()').getall()
+    if len(temp) == 0:
+        page = None
     else:
-        return get_url_api({'page': index})
-
-
-def get_url_api(params=None):
-    """
-    获取用户页面下的所有微博的链接，和微博页数
-    :param params: params={'page':(int)}
-    :return: weibo_list, page (int)
-    """
-    request = Request('GET', url=TARGET_URL, params=params, headers=MY_HEADERS[randomizer.randint(0, 1)])
-    pre = session.prepare_request(request)
-    response = session.send(pre)
-    print(response.text)
-    if response.status_code == 200:
-
-        # 解析url
-        html = etree.HTML(response.content)
-        url_list = html.xpath('//div[@class="c"]/div/a[@class="cc"]/@href')  # 获取本页所有评论链接
-        # url清洗
-        weibo_list, zhuanfa_list = clean_url(url_list)
-        # 获取页数
-        page = ''
-        temp = html.xpath('//div[@id="pagelist"]//div/text()')
-        if len(temp) == 0:
-            page = None
-        else:
-            for element in temp:
-                page += element
-            page = int(re.search('\d+/(\d+)页', page).group(1))
-        return weibo_list, page
+        for element in temp:
+            page += element
+        page = int(re.search('\d+/(\d+)页', page).group(1))
+    return weibo_list, page
 
 
 def clean_url(url_list):
     """
     清洗url_list
     :param url_list: (list) a dirty url_list
-    :return: (list) a cleaned list
+    :return: a cleaned list
     """
     weibo_list = []  # 本人发布的微博
     zhuanfa_list = []  # 转发的微博
@@ -133,11 +120,16 @@ async def scrape_api(url, params):
     """
     异步的响应数据
     返回页面源码
+    :param params:
     :param url: url prepared to request
     :return: response(str)
     """
     async with semaphore:  # 限制最大并发
         async with aio_session.get(url, headers=MY_HEADERS[randomizer.randint(0, 1)], params=params) as response:
+            if response.status == 200:
+                logger.info('{} done successfully'.format(url))
+            else:
+                logger.warning('{} failed'.format(url))
             return await response.text()
 
 
@@ -147,7 +139,7 @@ async def scrape_index(url, index=None):
     :param index: (int)
     :return: scrape_api()
     """
-    if index is None or index == 1:
+    if index is None or index == 1 or index == 0:
         return await scrape_api(url, None)
     else:
         return await scrape_api(url, {'page': index})
@@ -196,11 +188,15 @@ def parse_index(html):
     print('*' * 100)
     return public_time, content, comment_list, page
 
-    # await save_data(data)
-    # return data
+    # 存储数据部分
 
 
 def clean_comment(arr: list):
+    """
+    清洗评论数据
+    :param arr:
+    :return:
+    """
     p = [x.strip() for x in arr if x.strip() != '' and x != '回复']
     q = [x.lstrip(':') for x in p if len(x) > 1]
     res = []
@@ -230,25 +226,22 @@ async def main():
     :return:
     """
     global aio_session
-    url_list, page = get_url()
-    print(url_list)
     aio_session = aiohttp.ClientSession()
+    url_list, page = await get_url()
+    print(url_list)
+
     if page:
         t = 1  # 微博主页定位
-        # 测试限制主页微博为2页
-        page = 2
+        page = 2  # 测试限制主页微博为2页
         for _ in range(1, page + 1):
             results = await asyncio.gather(
-                *[asyncio.create_task(scrape_index(url)) for url in url_list])
-            # 解析本页所有微博页和评论
+                *[asyncio.create_task(scrape_index(url)) for url in url_list])  # 因为task一定会被完成，所以不能通过回调函数判断抓取结果
             n = 0
-            for result in results:
-                # print(result)  # 微博页请求结果
-                time, content, comment_list, page_ = parse_index(result)  # 返还解析结果
+            for result in results:  # 解析
+                time, content, comment_list, page_ = parse_index(result)  # 解析结果
                 if page_:
                     if page_ > 3:
-                        # 测试限制评论为3页
-                        page_ = 3
+                        page_ = 3  # 测试限制评论为3页
                         res = await asyncio.gather(
                             *[asyncio.create_task(scrape_index(url_list[n], j)) for j in range(2, page_ + 1)])
                         for r in res:
@@ -257,10 +250,9 @@ async def main():
                     continue
                 n += 1
             t += 1
-            url_list, page = get_url(t)
+            url_list, page = await get_url(t)
             print(url_list)
 
-    session.close()
     await aio_session.close()
     await asyncio.sleep(5)
 

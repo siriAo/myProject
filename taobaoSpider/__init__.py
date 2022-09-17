@@ -3,7 +3,6 @@
 # @Author : AoJiao
 # @File : __init__.py
 # @Project : myProject
-# 1、通过异步实现对评论接口的抓取
 
 import urllib.parse
 from random import Random
