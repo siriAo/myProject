@@ -16,6 +16,7 @@ UID = 6593199887  # 原神
 
 # START_URL = 'https://weibo.cn'
 TARGET_URL = 'https://weibo.cn/u/{}'.format(UID)
+# PROXIES_POOL=['http://183.220.145.3:80','http://183.220.145.3:80','http://183.220.145.3:80']
 MY_HEADERS = [{
     'authority': 'weibo.cn',
     'method': 'GET',
@@ -81,7 +82,7 @@ async def get_url(index=None):
     response = await scrape_index(TARGET_URL, index)
     # 解析url
     selector = Selector(text=response)
-    url_list = selector.xpath('//div[@class="c"]/div/a[@class="cc"]/@href').getall()  # 获取本页所有评论链接
+    url_list = selector.xpath('//div[@class="c"]/div/a[@class="cc"]/@href').getall()  # 获取评论链接
     # url清洗
     weibo_list, zhuanfa_list = clean_url(url_list)
     # 获取页数
@@ -125,11 +126,12 @@ async def scrape_api(url, params):
     :return: response(str)
     """
     async with semaphore:  # 限制最大并发
-        async with aio_session.get(url, headers=MY_HEADERS[randomizer.randint(0, 1)], params=params) as response:
+        async with aio_session.get(url, headers=randomizer.choice(MY_HEADERS),
+                                   params=params, ) as response:  # proxy=randomizer.choice(PROXIES_POOL)
             if response.status == 200:
-                logger.info('{} done successfully'.format(url))
+                logger.info('{} done successfully'.format(response.url))
             else:
-                logger.warning('{} failed'.format(url))
+                logger.warning('{} failed'.format(response.url))
             return await response.text()
 
 

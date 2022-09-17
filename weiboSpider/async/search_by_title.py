@@ -7,13 +7,16 @@
 # 问题:代理频率,账号异地检测
 import json
 import asyncio
+import logging
 import aiohttp
 from random import Random
+
 # START_URL = 'https://m.weibo.cn'
-TITLE = ''
+TITLE = 'iphon14'
 # SEARCH_URL = 'https://m.weibo.cn/search?containerid=100103type%3D1%26q%3D{}&page_type=searchall'.format(TITLE)
 SEARCH_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D{}&page_type=searchall'.format(
     TITLE)
+# PROXIES_POOL = ['http://183.220.145.3:80', 'http://183.220.145.3:80', 'http://183.220.145.3:80']
 MY_HEADERS = [{
     'authority': 'm.weibo.cn',
     'method': 'GET',
@@ -65,6 +68,14 @@ MY_HEADERS = [{
 CONCURRENCY = 3
 semaphore = asyncio.Semaphore(CONCURRENCY)
 randomizer = Random()
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(levelname)s   %(filename)s [line:%(lineno)d]  %(message)s  %(asctime)s',
+    filename='by_title.log',
+    filemode='w',
+    encoding='utf-8'
+)
+logger = logging.getLogger()
 
 
 async def scrape_index(url: str, index=None):
@@ -79,7 +90,7 @@ async def scrape_index(url: str, index=None):
         return await scrape_api(url + '&page={}'.format(index), None)
 
 
-async def scrape_api(url: str, params):
+async def scrape_api(url, params):
     """
     异步的响应数据
     返回页面源码
@@ -88,7 +99,12 @@ async def scrape_api(url: str, params):
     :return: response(str)
     """
     async with semaphore:  # 限制最大并发
-        async with aio_session.get(url, headers=MY_HEADERS[randomizer.randint(0, 1)], params=params) as response:
+        async with aio_session.get(url, headers=randomizer.choice(MY_HEADERS),
+                                   params=params, ) as response:  # proxy=randomizer.choice(PROXIES_POOL)
+            if response.status == 200:
+                logger.info('{} done successfully'.format(response.url))
+            else:
+                logger.warning('{} failed'.format(response.url))
             return await response.text()
 
 
@@ -123,15 +139,15 @@ async def main():
     """
     global aio_session
     aio_session = aiohttp.ClientSession()
-
+    # aio_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False))
     END_INDEX = 2  # 访问1~29
     for x in range(END_INDEX):  # 目的是减缓访问频率
         if x == 0:
             result = await asyncio.gather(
-                *[asyncio.create_task(scrape_index(SEARCH_URL, i + 10)) for i in range(1, 10)])  # 1-9
+                *[asyncio.create_task(scrape_index(SEARCH_URL, i)) for i in range(1, 10)])  # 1-9
         else:
             result = await asyncio.gather(
-                *[asyncio.create_task(scrape_index(SEARCH_URL, i + 10 * x)) for i in range(0, 10)])  # x0-x9
+                *[asyncio.create_task(scrape_index(SEARCH_URL, i + 10 * x)) for i in range(0, 10)])  # 10-x9
         for response in result:
             parse(response)
 
