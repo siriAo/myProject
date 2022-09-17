@@ -1,0 +1,6 @@
+lxml~=4.9.1
+requests~=2.28.0
+OpenCC~=1.1.1
+aiohttp~=3.8.1
+parsel~=1.6.0
+selenium~=4.3.0
