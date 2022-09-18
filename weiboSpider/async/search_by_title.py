@@ -13,7 +13,7 @@ import aiohttp
 from random import Random
 
 # START_URL = 'https://m.weibo.cn'
-TITLE = '客车侧翻致27人遇难20人受伤'
+TITLE = 'iphon14'
 SEARCH_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D{}&page_type=searchall'.format(
     TITLE)
 # PROXIES_POOL = ['http://183.220.145.3:80', 'http://183.220.145.3:80', 'http://183.220.145.3:80']
@@ -26,7 +26,7 @@ MY_HEADERS = [{
     # 'accept-encoding': 'gzip, deflate, br',
     # 'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
     # 'cache-control': 'no-cache',
-    'cookie': 'SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WWmc0VRWNhdlYiMav2ZDIQL5NHD95QNeKncSK-ESo.XWs4Dqcjci--RiKysi-27i--RiK.7iKL2i--fiKnpi-zNi--fiK.7iKn0i--Ri-zpiKnci--RiKnfiK.7; SCF=AmEg-bFzNVudh8QI7VXSPR5YjKW8T1zp-bPlDEHhbJDXi-WWEQDpeJXaEcRjBdrqGL4oDR_lq-b0uOwlAgWSL9c.; _T_WM=25694f0029db657d9f4581c179e15ab3; SUB=_2A25OC1qTDeRhGeFP41QU9SzKwjiIHXVt9GbbrDV6PUJbkdANLU-kkW1NQRepQQWMT26xhgV8-w_vb-0SFEL6bq0O; WEIBOCN_FROM=1110006030; MLOGIN=1; M_WEIBOCN_PARAMS=luicode%3D20000174%26uicode%3D20000174; XSRF-TOKEN=8414b0',
+    # 'cookie': 'SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WWmc0VRWNhdlYiMav2ZDIQL5NHD95QNeKncSK-ESo.XWs4Dqcjci--RiKysi-27i--RiK.7iKL2i--fiKnpi-zNi--fiK.7iKn0i--Ri-zpiKnci--RiKnfiK.7; SCF=AmEg-bFzNVudh8QI7VXSPR5YjKW8T1zp-bPlDEHhbJDXi-WWEQDpeJXaEcRjBdrqGL4oDR_lq-b0uOwlAgWSL9c.; _T_WM=25694f0029db657d9f4581c179e15ab3; SUB=_2A25OC1qTDeRhGeFP41QU9SzKwjiIHXVt9GbbrDV6PUJbkdANLU-kkW1NQRepQQWMT26xhgV8-w_vb-0SFEL6bq0O; WEIBOCN_FROM=1110006030; MLOGIN=1; M_WEIBOCN_PARAMS=luicode%3D20000174%26uicode%3D20000174; XSRF-TOKEN=8414b0',
     # 'mweibo-pwa': 1,
     'pragma': 'no-cache',
     'referer': 'https://m.weibo.cn/search?containerid=100103type%3D1%26q%3Dip',
@@ -49,7 +49,7 @@ MY_HEADERS = [{
         # 'accept-encoding': 'gzip, deflate, br',
         # 'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
         # 'cache-control': 'no-cache',
-        'cookie': '_T_WM=7caaa4548fc1763ff481143848ab99e8; SCF=AhHd-Hi2qQD2QXv6h0FQf5JcuN0YEfSeOBQyHIvblpOqtpAxstF_TTHfDlH9UBuYWXV8AS1nW-9IByfbhGbEkmc.; SUB=_2A25OHAqkDeRhGeFJ41QZ8C_OzzyIHXVt_pbsrDV6PUNbktANLUfjkW1NfuRN_DAI5IjIVxXSQF5JfHjJqKsCHzYM; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WFW2JJ2xLsHBVrHqiBFC-Ud5JpX5KMhUgL.FoMN1hqReh2ESh52dJLoIp7LxKML1KBLBKnLxKqL1hnLBoMp1KeReh.4SoqX; ALF=1665140724; WEIBOCN_FROM=1110006030; MLOGIN=1; XSRF-TOKEN=8ad9f9; mweibo_short_token=b7b8a4f6fa; M_WEIBOCN_PARAMS=luicode%3D10000011%26lfid%3D100103type%253D1%2526q%253D%25E6%2597%25A5%25E6%259C%25AC%25E5%258F%2591%25E5%25B8%2583%25E6%259C%2580%25E9%25AB%2598%25E7%25BA%25A7%25E5%2588%25AB%25E9%25A2%2584%25E8%25AD%25A6%26fid%3D100103type%253D1%2526q%253D%25E6%2597%25A5%25E6%259C%25AC%25E5%258F%2591%25E5%25B8%2583%25E6%259C%2580%25E9%25AB%2598%25E7%25BA%25A7%25E5%2588%25AB%25E9%25A2%2584%25E8%25AD%25A6%26uicode%3D10000011',
+        # 'cookie': '_T_WM=7caaa4548fc1763ff481143848ab99e8; SCF=AhHd-Hi2qQD2QXv6h0FQf5JcuN0YEfSeOBQyHIvblpOqtpAxstF_TTHfDlH9UBuYWXV8AS1nW-9IByfbhGbEkmc.; SUB=_2A25OHAqkDeRhGeFJ41QZ8C_OzzyIHXVt_pbsrDV6PUNbktANLUfjkW1NfuRN_DAI5IjIVxXSQF5JfHjJqKsCHzYM; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WFW2JJ2xLsHBVrHqiBFC-Ud5JpX5KMhUgL.FoMN1hqReh2ESh52dJLoIp7LxKML1KBLBKnLxKqL1hnLBoMp1KeReh.4SoqX; ALF=1665140724; WEIBOCN_FROM=1110006030; MLOGIN=1; XSRF-TOKEN=8ad9f9; mweibo_short_token=b7b8a4f6fa; M_WEIBOCN_PARAMS=luicode%3D10000011%26lfid%3D100103type%253D1%2526q%253D%25E6%2597%25A5%25E6%259C%25AC%25E5%258F%2591%25E5%25B8%2583%25E6%259C%2580%25E9%25AB%2598%25E7%25BA%25A7%25E5%2588%25AB%25E9%25A2%2584%25E8%25AD%25A6%26fid%3D100103type%253D1%2526q%253D%25E6%2597%25A5%25E6%259C%25AC%25E5%258F%2591%25E5%25B8%2583%25E6%259C%2580%25E9%25AB%2598%25E7%25BA%25A7%25E5%2588%25AB%25E9%25A2%2584%25E8%25AD%25A6%26uicode%3D10000011',
         # 'mweibo-pwa': 1,
         'pragma': 'no-cache',
         'referer': 'https://m.weibo.cn/search?containerid=100103type%3D1%26q%3Dip',
@@ -72,7 +72,7 @@ MY_HEADERS = [{
         # 'accept-encoding': 'gzip, deflate, br',
         # 'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
         # 'cache-control': 'no-cache',
-        'cookie': '_T_WM=19540876774; XSRF-TOKEN=5c084b; WEIBOCN_FROM=1110006030; MLOGIN=0; M_WEIBOCN_PARAMS=luicode%3D10000011%26lfid%3D231583%26uicode%3D10000011%26fid%3D100103type%253D1%2526t%253D10%2526q%253D%2523%25E8%258B%25B1%25E9%259B%2584%25E5%259B%259E%25E5%25AE%25B6%2523',
+        # 'cookie': '_T_WM=19540876774; XSRF-TOKEN=5c084b; WEIBOCN_FROM=1110006030; MLOGIN=0; M_WEIBOCN_PARAMS=luicode%3D10000011%26lfid%3D231583%26uicode%3D10000011%26fid%3D100103type%253D1%2526t%253D10%2526q%253D%2523%25E8%258B%25B1%25E9%259B%2584%25E5%259B%259E%25E5%25AE%25B6%2523',
         # 'mweibo-pwa': 1,
         'pragma': 'no-cache',
         'referer': 'https://m.weibo.cn/search?containerid=100103type%3D1%26q%3Dip',
@@ -128,7 +128,7 @@ async def scrape_api(url, params):
                 logger.info('{} done successfully'.format(response.url))
             else:
                 logger.warning('{} failed'.format(response.url))
-            return await response.text()
+            return await response.text(),response.url
 
 
 async def parse(response):
@@ -137,36 +137,42 @@ async def parse(response):
     :param response:
     :return:
     """
-    js = json.loads(response)
-    # 校验card_type
-    # 9=>['data']['cards'][] ['mblog']['text']
-    # 11=>['data']['cards'][] [card_group][]card_type=9
-    for i in range(len(js['data']['cards'])):
-        text = ''
-        temp = ''
-        root = js['data']['cards'][i]
 
-        if root['card_type'] == 9:
-            temp = root['mblog']['text']
+    js = json.loads(response[0])
+    if js['ok'] == 1:
+        # 校验先后顺序ok,card_type
+        # 9=>['data']['cards'][] ['mblog']['text']
+        # 11=>['data']['cards'][] [card_group][]card_type=9
+        for i in range(len(js['data']['cards'])):
+            text = ''
+            temp = ''
+            root = js['data']['cards'][i]
 
-        if root['card_type'] == 11:
-            for j in range(len(root['card_group'])):
-                target = root['card_group'][j]
-                if target['card_type'] == 9:
-                    temp = target['mblog']['text']
+            if root['card_type'] == 9:
+                temp = root['mblog']['text']
 
-        # 清洗数据
-        result = re.search('<a href=".*?(\d+)">全文</a>', temp)
-        if result:
-            href = result.group(1)
-            url = 'https://m.weibo.cn/statuses/extend?id=' + href
-            logger.info('{} registered into the loop'.format(url))
-            response = await scrape_index(url)
-            text = parse_detail(response)
-        else:
-            text = re.sub('<.*?>', '', temp)
-        print('i={} {}'.format(i, text))
-        print('-' * 100)
+            if root['card_type'] == 11:
+                for j in range(len(root['card_group'])):
+                    target = root['card_group'][j]
+                    if target['card_type'] == 9:
+                        temp = target['mblog']['text']
+
+            # 清洗数据
+            result = re.search('<a href=".*?(\d+)">全文</a>', temp)
+            if result:
+                href = result.group(1)
+                url = 'https://m.weibo.cn/statuses/extend?id=' + href
+                logger.info('{} registered into the loop'.format(url))
+                r = await scrape_index(url)
+                text = parse_detail(r[0])
+            else:
+                text = re.sub('<.*?>', '', temp)
+            print('i={} {}'.format(i, text))
+            print('-' * 100)
+    else:
+        logger.warning('{} data does not exist.'.format(response[1]))
+        print('{} 数据不存在或无数据返回'.format(response[1]))
+
 
 def parse_detail(response):
     text = ''
@@ -175,6 +181,7 @@ def parse_detail(response):
     temp = js['data']['longTextContent']
     text = re.sub('<.*?>', '', temp)
     return text
+
 
 # /status/4815116816878481
 # https://m.weibo.cn/detail/4815116816878481
