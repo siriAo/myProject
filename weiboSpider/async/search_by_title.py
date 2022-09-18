@@ -13,7 +13,7 @@ import aiohttp
 from random import Random
 
 # START_URL = 'https://m.weibo.cn'
-TITLE = 'iphon14'
+TITLE = '客车侧翻致27人遇难20人受伤'
 SEARCH_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D{}&page_type=searchall'.format(
     TITLE)
 # PROXIES_POOL = ['http://183.220.145.3:80', 'http://183.220.145.3:80', 'http://183.220.145.3:80']
@@ -128,16 +128,16 @@ async def scrape_api(url, params):
                 logger.info('{} done successfully'.format(response.url))
             else:
                 logger.warning('{} failed'.format(response.url))
-            return await response.text(), response.url
+            return await response.text()
 
 
-def parse(response: tuple):
+async def parse(response):
     """
     解析json格式的响应数据
     :param response:
     :return:
     """
-    js = json.loads(response[0])
+    js = json.loads(response)
     # 校验card_type
     # 9=>['data']['cards'][] ['mblog']['text']
     # 11=>['data']['cards'][] [card_group][]card_type=9
@@ -154,17 +154,35 @@ def parse(response: tuple):
                 target = root['card_group'][j]
                 if target['card_type'] == 9:
                     temp = target['mblog']['text']
+
         # 清洗数据
-        result = re.search('<a href="(.*)">全文</a>', temp)
+        result = re.search('<a href=".*?(\d+)">全文</a>', temp)
         if result:
             href = result.group(1)
-            url = str(response[1]) + href
-            text = url
+            url = 'https://m.weibo.cn/statuses/extend?id=' + href
+            logger.info('{} registered into the loop'.format(url))
+            response = await scrape_index(url)
+            text = parse_detail(response)
         else:
             text = re.sub('<.*?>', '', temp)
         print('i={} {}'.format(i, text))
-        print('*' * 100)
+        print('-' * 100)
 
+def parse_detail(response):
+    text = ''
+    js = json.loads(response)
+    # 清洗数据
+    temp = js['data']['longTextContent']
+    text = re.sub('<.*?>', '', temp)
+    return text
+
+# /status/4815116816878481
+# https://m.weibo.cn/detail/4815116816878481
+# 正文API:https://m.weibo.cn/statuses/extend?id=4815116816878481
+# 评论API:https://m.weibo.cn/comments/hotflow?id=4815116816878481&mid=4815116816878481&max_id_type=0
+# https://m.weibo.cn/detail/4815108959636382
+# 正文API:https://m.weibo.cn/statuses/extend?id=4815111493519560
+# 评论API:https://m.weibo.cn/comments/hotflow?id=4815111493519560&mid=4815111493519560&max_id_type=0
 
 async def main():
     """
@@ -174,7 +192,7 @@ async def main():
     global aio_session
     aio_session = aiohttp.ClientSession()
     # aio_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False))
-    END_INDEX = 1  # 访问1~29
+    END_INDEX = 1  # 下拉刷新10次
     for x in range(END_INDEX):  # 目的是减缓访问频率
         if x == 0:
             result = await asyncio.gather(
@@ -183,7 +201,7 @@ async def main():
             result = await asyncio.gather(
                 *[asyncio.create_task(scrape_index(SEARCH_URL, i + 10 * x)) for i in range(0, 10)])  # 10-x9
         for response in result:
-            parse(response)
+            await parse(response)
 
     await aio_session.close()
     await asyncio.sleep(5)
