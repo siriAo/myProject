@@ -13,7 +13,7 @@ import aiohttp
 from random import Random
 
 # START_URL = 'https://m.weibo.cn'
-TITLE = 'iphon14'
+TITLE = '永远会被女生之间的友情感动'
 SEARCH_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D{}&page_type=searchall'.format(
     TITLE)
 # PROXIES_POOL = ['http://183.220.145.3:80', 'http://183.220.145.3:80', 'http://183.220.145.3:80']
@@ -87,7 +87,6 @@ MY_HEADERS = [{
         # 'x-xsrf-token': '5c084b'
     },
 ]
-
 CONCURRENCY = 3
 semaphore = asyncio.Semaphore(CONCURRENCY)
 randomizer = Random()
@@ -128,7 +127,7 @@ async def scrape_api(url, params):
                 logger.info('{} done successfully'.format(response.url))
             else:
                 logger.warning('{} failed'.format(response.url))
-            return await response.text(),response.url
+            return await response.text(), response.url
 
 
 async def parse(response):
@@ -137,7 +136,6 @@ async def parse(response):
     :param response:
     :return:
     """
-
     js = json.loads(response[0])
     if js['ok'] == 1:
         # 校验先后顺序ok,card_type
@@ -169,9 +167,12 @@ async def parse(response):
                 text = re.sub('<.*?>', '', temp)
             print('i={} {}'.format(i, text))
             print('-' * 100)
+        return True
+
     else:
         logger.warning('{} data does not exist.'.format(response[1]))
         print('{} 数据不存在或无数据返回'.format(response[1]))
+        return False
 
 
 def parse_detail(response):
@@ -199,16 +200,19 @@ async def main():
     global aio_session
     aio_session = aiohttp.ClientSession()
     # aio_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False))
-    END_INDEX = 1  # 下拉刷新10次
+
+    flag = True  # 没有考虑ip被封的情况下，防止设定访问频数严重超出可响应范围
+    END_INDEX = 1  # 下拉刷新19次
     for x in range(END_INDEX):  # 目的是减缓访问频率
-        if x == 0:
-            result = await asyncio.gather(
-                *[asyncio.create_task(scrape_index(SEARCH_URL, i)) for i in range(1, 10)])  # 1-9
-        else:
-            result = await asyncio.gather(
-                *[asyncio.create_task(scrape_index(SEARCH_URL, i + 10 * x)) for i in range(0, 10)])  # 10-x9
-        for response in result:
-            await parse(response)
+        if flag:
+            if x == 0:
+                result = await asyncio.gather(
+                    *[asyncio.create_task(scrape_index(SEARCH_URL, i)) for i in range(1, 10)])  # 1-9
+            else:
+                result = await asyncio.gather(
+                    *[asyncio.create_task(scrape_index(SEARCH_URL, i + 10 * x)) for i in range(0, 10)])  # 10-x9
+            for response in result:
+                flag = await parse(response)
 
     await aio_session.close()
     await asyncio.sleep(5)
