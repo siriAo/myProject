@@ -11,12 +11,13 @@ import asyncio
 import logging
 import aiohttp
 from random import Random
+from weiboSpider.asyn.writer import Writer
 
 # START_URL = 'https://m.weibo.cn'
-TITLE = '永远会被女生之间的友情感动'
+asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+TITLE = '疫情'
 SEARCH_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D{}&page_type=searchall'.format(
     TITLE)
-# PROXIES_POOL = ['http://183.220.145.3:80', 'http://183.220.145.3:80', 'http://183.220.145.3:80']
 MY_HEADERS = [{
     'authority': 'm.weibo.cn',
     'method': 'GET',
@@ -49,7 +50,7 @@ MY_HEADERS = [{
         # 'accept-encoding': 'gzip, deflate, br',
         # 'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
         # 'cache-control': 'no-cache',
-        # 'cookie': '_T_WM=7caaa4548fc1763ff481143848ab99e8; SCF=AhHd-Hi2qQD2QXv6h0FQf5JcuN0YEfSeOBQyHIvblpOqtpAxstF_TTHfDlH9UBuYWXV8AS1nW-9IByfbhGbEkmc.; SUB=_2A25OHAqkDeRhGeFJ41QZ8C_OzzyIHXVt_pbsrDV6PUNbktANLUfjkW1NfuRN_DAI5IjIVxXSQF5JfHjJqKsCHzYM; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WFW2JJ2xLsHBVrHqiBFC-Ud5JpX5KMhUgL.FoMN1hqReh2ESh52dJLoIp7LxKML1KBLBKnLxKqL1hnLBoMp1KeReh.4SoqX; ALF=1665140724; WEIBOCN_FROM=1110006030; MLOGIN=1; XSRF-TOKEN=8ad9f9; mweibo_short_token=b7b8a4f6fa; M_WEIBOCN_PARAMS=luicode%3D10000011%26lfid%3D100103type%253D1%2526q%253D%25E6%2597%25A5%25E6%259C%25AC%25E5%258F%2591%25E5%25B8%2583%25E6%259C%2580%25E9%25AB%2598%25E7%25BA%25A7%25E5%2588%25AB%25E9%25A2%2584%25E8%25AD%25A6%26fid%3D100103type%253D1%2526q%253D%25E6%2597%25A5%25E6%259C%25AC%25E5%258F%2591%25E5%25B8%2583%25E6%259C%2580%25E9%25AB%2598%25E7%25BA%25A7%25E5%2588%25AB%25E9%25A2%2584%25E8%25AD%25A6%26uicode%3D10000011',
+        # 'cookie': 'SCF=AhHd-Hi2qQD2QXv6h0FQf5JcuN0YEfSeOBQyHIvblpOqtpAxstF_TTHfDlH9UBuYWXV8AS1nW-9IByfbhGbEkmc.; SUB=_2A25OHAqkDeRhGeFJ41QZ8C_OzzyIHXVt_pbsrDV6PUNbktANLUfjkW1NfuRN_DAI5IjIVxXSQF5JfHjJqKsCHzYM; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WFW2JJ2xLsHBVrHqiBFC-Ud5JpX5KMhUgL.FoMN1hqReh2ESh52dJLoIp7LxKML1KBLBKnLxKqL1hnLBoMp1KeReh.4SoqX; ALF=1665140724; _T_WM=49218518125; XSRF-TOKEN=001f8c; WEIBOCN_FROM=1110006030; mweibo_short_token=81e01d9e6a; MLOGIN=1; M_WEIBOCN_PARAMS=luicode%3D20000174%26uicode%3D20000174',
         # 'mweibo-pwa': 1,
         'pragma': 'no-cache',
         'referer': 'https://m.weibo.cn/search?containerid=100103type%3D1%26q%3Dip',
@@ -72,7 +73,7 @@ MY_HEADERS = [{
         # 'accept-encoding': 'gzip, deflate, br',
         # 'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
         # 'cache-control': 'no-cache',
-        # 'cookie': '_T_WM=19540876774; XSRF-TOKEN=5c084b; WEIBOCN_FROM=1110006030; MLOGIN=0; M_WEIBOCN_PARAMS=luicode%3D10000011%26lfid%3D231583%26uicode%3D10000011%26fid%3D100103type%253D1%2526t%253D10%2526q%253D%2523%25E8%258B%25B1%25E9%259B%2584%25E5%259B%259E%25E5%25AE%25B6%2523',
+        # 'cookie': '_T_WM=30230929236; XSRF-TOKEN=305e69; WEIBOCN_FROM=1110006030; mweibo_short_token=a44cecdf40; MLOGIN=0; M_WEIBOCN_PARAMS=luicode%3D10000011%26lfid%3D102803%26uicode%3D20000174',
         # 'mweibo-pwa': 1,
         'pragma': 'no-cache',
         'referer': 'https://m.weibo.cn/search?containerid=100103type%3D1%26q%3Dip',
@@ -87,7 +88,16 @@ MY_HEADERS = [{
         # 'x-xsrf-token': '5c084b'
     },
 ]
-CONCURRENCY = 3
+
+PROXIES_POOL = ['http://w195.kdltps.com:15818']
+# 隧道域名:端口号
+# tunnel = "XXX.XXX.com:15818"
+# 用户名和密码方式
+username = "oozqtoyzcb5j5yyuoq8x"
+password = "x9lao285f54wdcliqlp4o544jovyctgy"
+proxy_auth = aiohttp.BasicAuth(username, password)
+
+CONCURRENCY = 2
 semaphore = asyncio.Semaphore(CONCURRENCY)
 randomizer = Random()
 logging.basicConfig(
@@ -106,10 +116,13 @@ async def scrape_index(url: str, index=None):
     :param index: (int)
     :return: scrape_api()
     """
-    if index is None or index == 1 or index == 0:
-        return await scrape_api(url, None)
-    else:
-        return await scrape_api(url + '&page={}'.format(index), None)
+    try:
+        if index is None or index == 1 or index == 0:
+            return await scrape_api(url, None)
+        else:
+            return await scrape_api(url + '&page={}'.format(index), None)
+    except Exception:
+        pass
 
 
 async def scrape_api(url, params):
@@ -122,12 +135,17 @@ async def scrape_api(url, params):
     """
     async with semaphore:  # 限制最大并发
         async with aio_session.get(url, headers=randomizer.choice(MY_HEADERS),
-                                   params=params, ) as response:  # proxy=randomizer.choice(PROXIES_POOL)
+                                   proxy=randomizer.choice(PROXIES_POOL), proxy_auth=proxy_auth,
+                                   params=params, ) as response:
             if response.status == 200:
                 logger.info('{} done successfully'.format(response.url))
+                return await response.text(), response.url
             else:
-                logger.warning('{} failed'.format(response.url))
-            return await response.text(), response.url
+                logger.warning('{} failed code:{}'.format(response.url, response.status))
+                if response.status == 502:  # 连接超时
+                    return await scrape_index(url, params)
+                return None
+
 
 
 async def parse(response):
@@ -136,52 +154,63 @@ async def parse(response):
     :param response:
     :return:
     """
-    js = json.loads(response[0])
-    if js['ok'] == 1:
-        # 校验先后顺序ok,card_type
-        # 9=>['data']['cards'][] ['mblog']['text']
-        # 11=>['data']['cards'][] [card_group][]card_type=9
-        for i in range(len(js['data']['cards'])):
-            text = ''
-            temp = ''
-            root = js['data']['cards'][i]
+    text_arr = []
+    if response:
+        js = json.loads(response[0])
+        if js['ok'] == 1:
+            # 校验先后顺序ok,card_type
+            # 9=>['data']['cards'][] ['mblog']['text']
+            # 11=>['data']['cards'][] [card_group][]card_type=9
+            for i in range(len(js['data']['cards'])):
+                text = ''
+                temp = ''
+                root = js['data']['cards'][i]
 
-            if root['card_type'] == 9:
-                temp = root['mblog']['text']
+                if root['card_type'] == 9:
+                    temp = root['mblog']['text']
 
-            if root['card_type'] == 11:
-                for j in range(len(root['card_group'])):
-                    target = root['card_group'][j]
-                    if target['card_type'] == 9:
-                        temp = target['mblog']['text']
+                if root['card_type'] == 11:
+                    for j in range(len(root['card_group'])):
+                        target = root['card_group'][j]
+                        if target['card_type'] == 9:
+                            temp = target['mblog']['text']
 
-            # 清洗数据
-            result = re.search('<a href=".*?(\d+)">全文</a>', temp)
-            if result:
-                href = result.group(1)
-                url = 'https://m.weibo.cn/statuses/extend?id=' + href
-                logger.info('{} registered into the loop'.format(url))
-                r = await scrape_index(url)
-                text = parse_detail(r[0])
-            else:
-                text = re.sub('<.*?>', '', temp)
-            print('i={} {}'.format(i, text))
-            print('-' * 100)
-        return True
-
+                # 清洗数据
+                result = re.search('<a href=".*?(\d+)">全文</a>', temp)
+                if result:
+                    href = result.group(1)
+                    url = 'https://m.weibo.cn/statuses/extend?id=' + href
+                    logger.info('{} registered into the loop'.format(url))
+                    r = await scrape_index(url)
+                    text = parse_detail(r)
+                else:
+                    text = re.sub('<.*?>', '', temp)
+                if text and text != '':
+                    text_arr.append(text)
+                print('i={} {}'.format(i, text))
+                print('-' * 100)
+            return text_arr
+        # 无数据
+        else:
+            logger.warning('{} data does not exist.'.format(response[1]))
+            print('{} 数据不存在或无数据返回'.format(response[1]))
+            return 0
+    # response响应失败
     else:
-        logger.warning('{} data does not exist.'.format(response[1]))
-        print('{} 数据不存在或无数据返回'.format(response[1]))
-        return False
+        return None
 
 
 def parse_detail(response):
     text = ''
-    js = json.loads(response)
-    # 清洗数据
-    temp = js['data']['longTextContent']
-    text = re.sub('<.*?>', '', temp)
-    return text
+    if response:
+        js = json.loads(response[0])
+        # 清洗数据
+        temp = js['data']['longTextContent']
+        text = re.sub('<.*?>', '', temp)
+        return text
+    else:
+        logger.warning('parse failed')
+        return None
 
 
 # /status/4815116816878481
@@ -199,10 +228,11 @@ async def main():
     """
     global aio_session
     aio_session = aiohttp.ClientSession()
-    # aio_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False))
+    # aio_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False))
 
     flag = True  # 没有考虑ip被封的情况下，防止设定访问频数严重超出可响应范围
-    END_INDEX = 1  # 下拉刷新19次
+    END_INDEX = 999  # 下拉刷新19次
+
     for x in range(END_INDEX):  # 目的是减缓访问频率
         if flag:
             if x == 0:
@@ -211,8 +241,16 @@ async def main():
             else:
                 result = await asyncio.gather(
                     *[asyncio.create_task(scrape_index(SEARCH_URL, i + 10 * x)) for i in range(0, 10)])  # 10-x9
-            for response in result:
-                flag = await parse(response)
+
+            with Writer('title_data.csv', mode='a', encoding='utf-8') as wr:
+                for response in result:
+                    temp = await parse(response)  # temp只能为 Str None(响应失败不处理) 0(无数据维护flag)
+                    if temp and temp != 0:
+                        # 写入csv
+                        wr.csv_write_in(delimiter=',', text_arr=temp)
+                        flag = True
+                    elif temp == 0:
+                        flag = False
 
     await aio_session.close()
     await asyncio.sleep(5)
