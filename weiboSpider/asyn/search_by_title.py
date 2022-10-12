@@ -11,6 +11,8 @@ import asyncio
 import logging
 import aiohttp
 from random import Random
+from weiboSpider.asyn.item import Item
+from weiboSpider.asyn.user import User
 from weiboSpider.asyn.writer import Writer
 
 # START_URL = 'https://m.weibo.cn'
@@ -135,7 +137,7 @@ async def scrape_api(url, params):
     """
     async with semaphore:  # 限制最大并发
         async with aio_session.get(url, headers=randomizer.choice(MY_HEADERS),
-                                   proxy=randomizer.choice(PROXIES_POOL), proxy_auth=proxy_auth,
+                                   # proxy=randomizer.choice(PROXIES_POOL), proxy_auth=proxy_auth,
                                    params=params, ) as response:
             if response.status == 200:
                 logger.info('{} done successfully'.format(response.url))
@@ -147,14 +149,13 @@ async def scrape_api(url, params):
                 return None
 
 
-
 async def parse(response):
     """
     解析json格式的响应数据
     :param response:
     :return:
     """
-    text_arr = []
+    res_arr = []
     if response:
         js = json.loads(response[0])
         if js['ok'] == 1:
@@ -167,15 +168,18 @@ async def parse(response):
                 root = js['data']['cards'][i]
 
                 if root['card_type'] == 9:
+                    target = root['mblog']
                     temp = root['mblog']['text']
 
                 if root['card_type'] == 11:
                     for j in range(len(root['card_group'])):
-                        target = root['card_group'][j]
-                        if target['card_type'] == 9:
-                            temp = target['mblog']['text']
+                        branch = root['card_group'][j]
+                        if branch['card_type'] == 9:
+                            target = branch['mblog']
+                            temp = branch['mblog']['text']
+                            break
 
-                # 清洗数据
+                # 跟进全文页
                 result = re.search('<a href=".*?(\d+)">全文</a>', temp)
                 if result:
                     href = result.group(1)
@@ -183,13 +187,15 @@ async def parse(response):
                     logger.info('{} registered into the loop'.format(url))
                     r = await scrape_index(url)
                     text = parse_detail(r)
+                # 清洗数据
                 else:
                     text = re.sub('<.*?>', '', temp)
+                # 清洗结束加入返回数组
                 if text and text != '':
-                    text_arr.append(text)
+                    res_arr.append(create_item(text, target))
                 print('i={} {}'.format(i, text))
                 print('-' * 100)
-            return text_arr
+            return res_arr
         # 无数据
         else:
             logger.warning('{} data does not exist.'.format(response[1]))
@@ -198,6 +204,34 @@ async def parse(response):
     # response响应失败
     else:
         return None
+
+
+def create_item(text, root):
+    """
+    创建新的item对象
+    :param text:
+    :param root: dic_blog
+    :return: item
+    """
+    print(root)
+    try:
+        status_city = root['status_city']
+    except Exception:
+        status_city = None
+    try:
+        status_province = root['status_province']
+    except Exception:
+        status_province = None
+    try:
+        status_country = root['status_country']
+    except Exception:
+        status_country = None
+    try:
+        item = Item(text, root['created_at'], status_city, status_province, status_country,
+                    User(root['user']['screen_name'], root['user']['id'], root['user']['followers_count']))
+    except Exception as e:
+        print(e)
+    return item
 
 
 def parse_detail(response):
@@ -231,7 +265,7 @@ async def main():
     # aio_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False))
 
     flag = True  # 没有考虑ip被封的情况下，防止设定访问频数严重超出可响应范围
-    END_INDEX = 999  # 下拉刷新19次
+    END_INDEX = 1  # 下拉刷新19次
 
     for x in range(END_INDEX):  # 目的是减缓访问频率
         if flag:
@@ -242,14 +276,15 @@ async def main():
                 result = await asyncio.gather(
                     *[asyncio.create_task(scrape_index(SEARCH_URL, i + 10 * x)) for i in range(0, 10)])  # 10-x9
 
+            # 记录数据到本地
             with Writer('title_data.csv', mode='a', encoding='utf-8') as wr:
                 for response in result:
-                    temp = await parse(response)  # temp只能为 Str None(响应失败不处理) 0(无数据维护flag)
+                    temp = await parse(response)  # temp只能为 [item] None(响应失败不处理) 0(无数据维护flag)
                     if temp and temp != 0:
                         # 写入csv
-                        wr.csv_write_in(delimiter=',', text_arr=temp)
+                        wr.csv_write_in(delimiter=',', items=temp)
                         flag = True
-                    elif temp == 0:
+                    else:
                         flag = False
 
     await aio_session.close()

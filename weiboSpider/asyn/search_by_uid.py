@@ -149,7 +149,7 @@ async def scrape_index(url, index=None):
 
 def parse_index(html):
     """
-    解析服务器响应数据
+    解析响应数据
     :param html: http doc response
     :return:
     """
