@@ -10,7 +10,10 @@ import json
 import asyncio
 import logging
 import aiohttp
+from opencc import OpenCC
 from random import Random
+
+from util.mongoDB import Mongo
 from weiboSpider.asyn.item import Item
 from weiboSpider.asyn.user import User
 from weiboSpider.asyn.writer import Writer
@@ -187,12 +190,15 @@ async def parse(response):
                     logger.info('{} registered into the loop'.format(url))
                     r = await scrape_index(url)
                     text = parse_detail(r)
-                # 清洗数据
                 else:
+                    # 去html标签
                     text = re.sub('<.*?>', '', temp)
-                # 清洗结束加入返回数组
+                # 分离标签并加入返回数组
                 if text and text != '':
-                    res_arr.append(create_item(text, target))
+                    item = create_item(text, target)
+                    if item:
+                        res_arr.append(item)
+
                 print('i={} {}'.format(i, text))
                 print('-' * 100)
             return res_arr
@@ -208,12 +214,16 @@ async def parse(response):
 
 def create_item(text, root):
     """
-    创建新的item对象
+    分离标签并创建新的item对象
     :param text:
     :param root: dic_blog
     :return: item
     """
-    print(root)
+    # 繁转简
+    n = OpenCC('t2s').convert(text)
+    # 筛查标签
+    topic = re.findall('#(.*?)#', n)
+    text = n.strip()
     try:
         status_city = root['status_city']
     except Exception:
@@ -228,13 +238,19 @@ def create_item(text, root):
         status_country = None
     try:
         item = Item(text, root['created_at'], status_city, status_province, status_country,
-                    User(root['user']['screen_name'], root['user']['id'], root['user']['followers_count']))
+                    User(root['user']['screen_name'], root['user']['id'], root['user']['followers_count']),
+                    topic_list=topic)
     except Exception as e:
-        print(e)
+        logger.error('Information lost. Text:{}'.format(text))
     return item
 
 
-def parse_detail(response):
+def parse_detail(response) -> str | None:
+    """
+    解析全文页
+    :param response:
+    :return:
+    """
     text = ''
     if response:
         js = json.loads(response[0])
@@ -263,10 +279,9 @@ async def main():
     global aio_session
     aio_session = aiohttp.ClientSession()
     # aio_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False))
-
     flag = True  # 没有考虑ip被封的情况下，防止设定访问频数严重超出可响应范围
     END_INDEX = 1  # 下拉刷新19次
-
+    dbCollection = Mongo(db='weibo', collection='title_data')
     for x in range(END_INDEX):  # 目的是减缓访问频率
         if flag:
             if x == 0:
@@ -276,8 +291,22 @@ async def main():
                 result = await asyncio.gather(
                     *[asyncio.create_task(scrape_index(SEARCH_URL, i + 10 * x)) for i in range(0, 10)])  # 10-x9
 
-            # 记录数据到本地
-            with Writer('title_data.csv', mode='a', encoding='utf-8') as wr:
+            # mongoDB写入到本地
+            for response in result:
+                temp = await parse(response)  # temp只能为 [item] None(响应失败不处理) 0(无数据维护flag)
+                if temp and temp != 0:
+                    res = await dbCollection.insert_many(temp)
+                    logger.info('{} tips of data written successfully'.format(len(res.inserted_ids)))
+                    flag = True
+                else:
+                    flag = False
+
+    await aio_session.close()
+    await asyncio.sleep(5)
+
+'''
+            # csv写入到本地
+            with Writer('title_data.csv', mode='w', encoding='utf-8') as wr:
                 for response in result:
                     temp = await parse(response)  # temp只能为 [item] None(响应失败不处理) 0(无数据维护flag)
                     if temp and temp != 0:
@@ -286,10 +315,7 @@ async def main():
                         flag = True
                     else:
                         flag = False
-
-    await aio_session.close()
-    await asyncio.sleep(5)
-
+'''
 
 if __name__ == '__main__':
     asyncio.run(main())

@@ -23,9 +23,10 @@ class Writer:
         if self.file:
             self.file.close()
 
-    def csv_write_in(self, delimiter, items: Item):
+    def csv_write_in(self, delimiter, items: list[Item]):
         csv_writer = csv.writer(self.file, delimiter=delimiter)  # 指定分隔符为逗号
         for item in items:
             csv_writer.writerow(
-                [item.text, item.created_at, item.user.id, item.user.screen_name, item.user.followers_count,
-                 item.status_city, item.status_province, item.status_country])
+                [item.text, item.created_at,
+                 item.user.id, item.user.screen_name, item.user.followers_count,
+                 item.status_city, item.status_province, item.status_country, *item.topic_list])

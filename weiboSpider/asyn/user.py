@@ -8,3 +8,8 @@ class User:
         self.screen_name = screen_name
         self.id = id
         self.followers_count = followers_count
+
+    def toMongo(self):
+        return {'screen_name': self.screen_name,
+                'id': self.id,
+                'followers_count': self.followers_count}
