@@ -23,6 +23,8 @@ asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 TITLE = '疫情'
 SEARCH_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D{}&page_type=searchall'.format(
     TITLE)
+TOPIC_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D%23{}%23&page_type=searchall'.format(
+    TITLE)
 MY_HEADERS = [{
     'authority': 'm.weibo.cn',
     'method': 'GET',
@@ -212,18 +214,25 @@ async def parse(response):
         return None
 
 
-def create_item(text, root):
+def create_item(text, root) -> Item | None:
     """
     分离标签并创建新的item对象
     :param text:
     :param root: dic_blog
     :return: item
     """
+    item = None
     # 繁转简
     n = OpenCC('t2s').convert(text)
+    text = n.strip()
     # 筛查标签
     topic = re.findall('#(.*?)#', n)
-    text = n.strip()
+    if len(topic) == 0:
+        topic = None
+    try:
+        bid = root['bid']
+    except Exception:
+        bid = None
     try:
         status_city = root['status_city']
     except Exception:
@@ -239,7 +248,7 @@ def create_item(text, root):
     try:
         item = Item(text, root['created_at'], status_city, status_province, status_country,
                     User(root['user']['screen_name'], root['user']['id'], root['user']['followers_count']),
-                    topic_list=topic)
+                    topic_list=topic, bid=bid)
     except Exception as e:
         logger.error('Information lost. Text:{}'.format(text))
     return item
@@ -296,13 +305,14 @@ async def main():
                 temp = await parse(response)  # temp只能为 [item] None(响应失败不处理) 0(无数据维护flag)
                 if temp and temp != 0:
                     res = await dbCollection.insert_many(temp)
-                    logger.info('{} tips of data written successfully'.format(len(res.inserted_ids)))
+                    logger.info('{} tips of data written in mongDB successfully'.format(len(res.inserted_ids)))
                     flag = True
                 else:
                     flag = False
 
     await aio_session.close()
     await asyncio.sleep(5)
+
 
 '''
             # csv写入到本地

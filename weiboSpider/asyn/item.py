@@ -9,7 +9,7 @@ from weiboSpider.asyn.user import User
 class Item:
     def __init__(self, text: str, created_at: str,
                  status_city: str, status_province: str, status_country: str,
-                 user: User, topic_list: list[str]):
+                 user: User, *, topic_list: list[str] | None, bid: str):
         self.text = text
         self.created_at = created_at
         self.status_city = status_city
@@ -17,9 +17,11 @@ class Item:
         self.status_country = status_country
         self.user = user
         self.topic_list = topic_list
+        self.bid = bid
 
     def toMongo(self):
-        return {'topic': self.topic_list,
+        return {'bid': self.bid,
+                'topic': self.topic_list,
                 'text': self.text,
                 'created_at': self.created_at,
                 'status_city': self.status_city,

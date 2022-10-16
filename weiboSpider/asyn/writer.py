@@ -29,4 +29,4 @@ class Writer:
             csv_writer.writerow(
                 [item.text, item.created_at,
                  item.user.id, item.user.screen_name, item.user.followers_count,
-                 item.status_city, item.status_province, item.status_country, *item.topic_list])
+                 item.status_city, item.status_province, item.status_country, item.mblogid, *item.topic_list])
