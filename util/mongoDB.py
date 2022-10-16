@@ -17,5 +17,9 @@ class Mongo:
         # client = pymongo.MongoClient(host='localhost', port=207017)
         # client = pymongo.MongoClient('mongodb://localhost:27017/')
 
+    async def find_one(self, condition: dict):
+        return await self.option.find_one(condition)
+
     async def insert_many(self, items: list[Item]):
-        return await self.option.insert_many([item.toMongo() for item in items])
+        return await self.option.insert_many([item.toMongo() for item in items
+                                              if not await self.find_one({'bid': item.bid})])

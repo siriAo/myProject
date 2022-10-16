@@ -111,7 +111,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(levelname)s   %(filename)s [line:%(lineno)d]  %(message)s  %(asctime)s',
     filename='by_title.log',
-    filemode='w',
+    filemode='a',
     encoding='utf-8'
 )
 logger = logging.getLogger()
@@ -143,7 +143,7 @@ async def scrape_api(url, params):
     async with semaphore:  # 限制最大并发
         async with aio_session.get(url, headers=randomizer.choice(MY_HEADERS),
                                    # proxy=randomizer.choice(PROXIES_POOL), proxy_auth=proxy_auth,
-                                   params=params, ) as response:
+                                   params=params) as response:
             if response.status == 200:
                 logger.info('{} done successfully'.format(response.url))
                 return await response.text(), response.url
@@ -169,32 +169,31 @@ async def parse(response):
             # 11=>['data']['cards'][] [card_group][]card_type=9
             for i in range(len(js['data']['cards'])):
                 text = ''
-                temp = ''
+                original_text = ''
                 root = js['data']['cards'][i]
 
                 if root['card_type'] == 9:
                     target = root['mblog']
-                    temp = root['mblog']['text']
+                    original_text = root['mblog']['text']
 
                 if root['card_type'] == 11:
                     for j in range(len(root['card_group'])):
                         branch = root['card_group'][j]
                         if branch['card_type'] == 9:
                             target = branch['mblog']
-                            temp = branch['mblog']['text']
+                            original_text = branch['mblog']['text']
                             break
 
                 # 跟进全文页
-                result = re.search('<a href=".*?(\d+)">全文</a>', temp)
+                result = re.search('<a href=".*?(\d+)">全文</a>', original_text)
                 if result:
                     href = result.group(1)
                     url = 'https://m.weibo.cn/statuses/extend?id=' + href
                     logger.info('{} registered into the loop'.format(url))
-                    r = await scrape_index(url)
-                    text = parse_detail(r)
-                else:
-                    # 去html标签
-                    text = re.sub('<.*?>', '', temp)
+                    original_text = parse_detail(await scrape_index(url))
+
+                # 去html标签
+                text = re.sub('<.*?>', '', original_text)
                 # 分离标签并加入返回数组
                 if text and text != '':
                     item = create_item(text, target)
@@ -260,16 +259,11 @@ def parse_detail(response) -> str | None:
     :param response:
     :return:
     """
-    text = ''
     if response:
         js = json.loads(response[0])
         # 清洗数据
-        temp = js['data']['longTextContent']
-        text = re.sub('<.*?>', '', temp)
-        return text
-    else:
-        logger.warning('parse failed')
-        return None
+        original_text = js['data']['longTextContent']
+        return original_text
 
 
 # /status/4815116816878481
@@ -290,7 +284,7 @@ async def main():
     # aio_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False))
     flag = True  # 没有考虑ip被封的情况下，防止设定访问频数严重超出可响应范围
     END_INDEX = 1  # 下拉刷新19次
-    dbCollection = Mongo(db='weibo', collection='title_data')
+    db = Mongo(db='weibo', collection='title_data')
     for x in range(END_INDEX):  # 目的是减缓访问频率
         if flag:
             if x == 0:
@@ -304,7 +298,7 @@ async def main():
             for response in result:
                 temp = await parse(response)  # temp只能为 [item] None(响应失败不处理) 0(无数据维护flag)
                 if temp and temp != 0:
-                    res = await dbCollection.insert_many(temp)
+                    res = await db.insert_many(temp)
                     logger.info('{} tips of data written in mongDB successfully'.format(len(res.inserted_ids)))
                     flag = True
                 else:
@@ -316,7 +310,7 @@ async def main():
 
 '''
             # csv写入到本地
-            with Writer('title_data.csv', mode='w', encoding='utf-8') as wr:
+            with Writer('title_data.csv', mode='a', encoding='utf-8') as wr:
                 for response in result:
                     temp = await parse(response)  # temp只能为 [item] None(响应失败不处理) 0(无数据维护flag)
                     if temp and temp != 0:
