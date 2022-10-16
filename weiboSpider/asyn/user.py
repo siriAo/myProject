@@ -9,7 +9,7 @@ class User:
         self.id = id
         self.followers_count = followers_count
 
-    def toMongo(self):
+    def toMongo(self) -> dict:
         return {'screen_name': self.screen_name,
                 'id': self.id,
                 'followers_count': self.followers_count}

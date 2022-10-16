@@ -4,12 +4,13 @@
 # @File : item
 # @Project : myProject
 from weiboSpider.asyn.user import User
+from weiboSpider.asyn.comment import Comment
 
 
 class Item:
     def __init__(self, text: str, created_at: str,
                  status_city: str, status_province: str, status_country: str,
-                 user: User, *, topic_list: list[str] | None, bid: str):
+                 user: User, *, topic_list: list[str] | None, bid: str, comments: list[Comment]):
         self.text = text
         self.created_at = created_at
         self.status_city = status_city
@@ -18,8 +19,13 @@ class Item:
         self.user = user
         self.topic_list = topic_list
         self.bid = bid
+        self.comments = comments
+        if comments:
+            self.comments_count = len(self.comments)
+        else:
+            self.comments_count = 0
 
-    def toMongo(self):
+    def toMongo(self) -> dict:
         return {'bid': self.bid,
                 'topic': self.topic_list,
                 'text': self.text,
@@ -27,5 +33,13 @@ class Item:
                 'status_city': self.status_city,
                 'status_province': self.status_province,
                 'status_country': self.status_country,
-                'user': self.user.toMongo()
+                'user': self.user.toMongo(),
+                'comments_count': self.comments_count,
+                'comments': self.commentstoMongo()
                 }
+
+    def commentstoMongo(self):
+        if self.comments:
+            return [comment.toMongo() for comment in self.comments]
+        else:
+            return None

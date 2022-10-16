@@ -16,6 +16,7 @@ from random import Random
 from util.mongoDB import Mongo
 from weiboSpider.asyn.item import Item
 from weiboSpider.asyn.user import User
+from weiboSpider.asyn.comment import Comment
 from weiboSpider.asyn.writer import Writer
 
 # START_URL = 'https://m.weibo.cn'
@@ -96,12 +97,12 @@ MY_HEADERS = [{
     },
 ]
 
-PROXIES_POOL = ['http://w195.kdltps.com:15818']
+PROXIES_POOL = ['http://n363.kdltps.com:15818']
 # 隧道域名:端口号
 # tunnel = "XXX.XXX.com:15818"
 # 用户名和密码方式
-username = "oozqtoyzcb5j5yyuoq8x"
-password = "x9lao285f54wdcliqlp4o544jovyctgy"
+username = "t16593083247427"
+password = "ldplpa68"
 proxy_auth = aiohttp.BasicAuth(username, password)
 
 CONCURRENCY = 2
@@ -190,13 +191,14 @@ async def parse(response):
                     href = result.group(1)
                     url = 'https://m.weibo.cn/statuses/extend?id=' + href
                     logger.info('{} registered into the loop'.format(url))
-                    original_text = parse_detail(await scrape_index(url))
+                    original_text = get_detail(await scrape_index(url))
 
                 # 去html标签
                 text = re.sub('<.*?>', '', original_text)
+
                 # 分离标签并加入返回数组
                 if text and text != '':
-                    item = create_item(text, target)
+                    item = await create_item(text, target)
                     if item:
                         res_arr.append(item)
 
@@ -213,7 +215,7 @@ async def parse(response):
         return None
 
 
-def create_item(text, root) -> Item | None:
+async def create_item(text, root) -> Item | None:
     """
     分离标签并创建新的item对象
     :param text:
@@ -224,6 +226,18 @@ def create_item(text, root) -> Item | None:
     # 繁转简
     n = OpenCC('t2s').convert(text)
     text = n.strip()
+    # 评论处理
+    try:
+        id = root['id']
+        mid = root['mid']
+        if root['comments_count'] != 0:
+            comments = await get_comments(id, mid)
+        else:
+            comments = None
+    except Exception:
+        id = None
+        mid = None
+        comments = None
     # 筛查标签
     topic = re.findall('#(.*?)#', n)
     if len(topic) == 0:
@@ -247,13 +261,13 @@ def create_item(text, root) -> Item | None:
     try:
         item = Item(text, root['created_at'], status_city, status_province, status_country,
                     User(root['user']['screen_name'], root['user']['id'], root['user']['followers_count']),
-                    topic_list=topic, bid=bid)
+                    topic_list=topic, bid=bid, comments=comments)
     except Exception as e:
         logger.error('Information lost. Text:{}'.format(text))
     return item
 
 
-def parse_detail(response) -> str | None:
+def get_detail(response) -> str | None:
     """
     解析全文页
     :param response:
@@ -266,13 +280,44 @@ def parse_detail(response) -> str | None:
         return original_text
 
 
-# /status/4815116816878481
+async def get_comments(id, mid):
+    comments = []
+    flag = True
+    max_id = 1
+    # 下一页数据不存在时max_id会返回0
+    while max_id != 0:
+        if max_id == 1:
+            response = await scrape_api('https://m.weibo.cn/comments/hotflow',
+                                        params={'id': id, 'mid': mid, 'max_id_type': 0})
+        else:
+            response = await scrape_api('https://m.weibo.cn/comments/hotflow',
+                                        params={'id': id, 'mid': mid, 'max_id': max_id, 'max_id_type': 0})
+        js = json.loads(response[0])
+        max_id = js['data']['max_id']
+        root = js['data']['data']
+        # 处理每一条评论
+        for i in range(len(root)):
+            target = root[i]
+            bid = target['bid']
+            text = re.sub('<.*?>', '', target['text'])
+            like_count = target['like_count']
+            created_at = target['created_at']
+            source = target['source']
+            comments.append(Comment(bid, text, like_count, created_at, source))
+        if len(comments) > 10:
+            return comments
+    return comments
+
+
 # https://m.weibo.cn/detail/4815116816878481
 # 正文API:https://m.weibo.cn/statuses/extend?id=4815116816878481
 # 评论API:https://m.weibo.cn/comments/hotflow?id=4815116816878481&mid=4815116816878481&max_id_type=0
 # https://m.weibo.cn/detail/4815108959636382
 # 正文API:https://m.weibo.cn/statuses/extend?id=4815111493519560
 # 评论API:https://m.weibo.cn/comments/hotflow?id=4815111493519560&mid=4815111493519560&max_id_type=0
+
+# 评论第一页API:https://m.weibo.cn/comments/hotflow?id=4825161494434619&mid=4825161494434619&max_id_type=0
+# 评论第二页API:https://m.weibo.cn/comments/hotflow?id=4825161494434619&mid=4825161494434619&max_id=197961848297926&max_id_type=0
 
 async def main():
     """
