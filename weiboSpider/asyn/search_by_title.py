@@ -21,7 +21,8 @@ from weiboSpider.asyn.writer import Writer
 
 # START_URL = 'https://m.weibo.cn'
 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-TITLE = '疫情'
+TITLE = '二十大'
+TITLE_POOL = ['疫情', '重庆', '民生', '二十大']
 SEARCH_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D{}&page_type=searchall'.format(
     TITLE)
 TOPIC_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D%23{}%23&page_type=searchall'.format(
@@ -118,7 +119,7 @@ logging.basicConfig(
 logger = logging.getLogger()
 
 
-async def scrape_index(url: str, index=None):
+async def scrape_index(url: str, index=1):
     """
     :param url: url prepared to request
     :param index: (int)
@@ -129,8 +130,13 @@ async def scrape_index(url: str, index=None):
             return await scrape_api(url, None)
         else:
             return await scrape_api(url + '&page={}'.format(index), None)
-    except Exception:
-        pass
+    except Exception as e:
+        try:
+            logger.error('page={} {}'.format(index, e.message))
+        except Exception as e:
+            pass
+        finally:
+            return None
 
 
 async def scrape_api(url, params):
@@ -143,8 +149,8 @@ async def scrape_api(url, params):
     """
     async with semaphore:  # 限制最大并发
         async with aio_session.get(url, headers=randomizer.choice(MY_HEADERS),
-                                   # proxy=randomizer.choice(PROXIES_POOL), proxy_auth=proxy_auth,
-                                   params=params) as response:
+                                   proxy=randomizer.choice(PROXIES_POOL), proxy_auth=proxy_auth,
+                                   params=params, timeout=50) as response:
             if response.status == 200:
                 logger.info('{} done successfully'.format(response.url))
                 return await response.text(), response.url
@@ -191,8 +197,13 @@ async def parse(response):
                     href = result.group(1)
                     url = 'https://m.weibo.cn/statuses/extend?id=' + href
                     logger.info('{} registered into the loop'.format(url))
-                    original_text = get_detail(await scrape_index(url))
+                    try:
+                        original_text = get_detail(await scrape_index(url))
+                    except Exception:
+                        continue
 
+                if original_text == '':
+                    continue
                 # 去html标签
                 text = re.sub('<.*?>', '', original_text)
 
@@ -212,6 +223,7 @@ async def parse(response):
             return 0
     # response响应失败
     else:
+        logger.error('page parse stopped because of failed response')
         return None
 
 
@@ -269,11 +281,12 @@ async def create_item(text, root) -> Item | None:
 
 def get_detail(response) -> str | None:
     """
-    解析全文页
+    获取全文页
     :param response:
     :return:
     """
     if response:
+        original_text = ''
         js = json.loads(response[0])
         # 清洗数据
         original_text = js['data']['longTextContent']
@@ -297,14 +310,17 @@ async def get_comments(id, mid):
         root = js['data']['data']
         # 处理每一条评论
         for i in range(len(root)):
+            try:
+                source = target['source']
+            except Exception:
+                source = None
             target = root[i]
             bid = target['bid']
             text = re.sub('<.*?>', '', target['text'])
             like_count = target['like_count']
             created_at = target['created_at']
-            source = target['source']
             comments.append(Comment(bid, text, like_count, created_at, source))
-        if len(comments) > 10:
+        if len(comments) > 100:
             return comments
     return comments
 
@@ -326,12 +342,13 @@ async def main():
     """
     global aio_session
     aio_session = aiohttp.ClientSession()
-    # aio_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False))
+    # aio_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(force_close=True, ssl=False))
     flag = True  # 没有考虑ip被封的情况下，防止设定访问频数严重超出可响应范围
-    END_INDEX = 1  # 下拉刷新19次
+    END_INDEX = 999  # 下拉刷新19次
     db = Mongo(db='weibo', collection='title_data')
     for x in range(END_INDEX):  # 目的是减缓访问频率
         if flag:
+            i = 0
             if x == 0:
                 result = await asyncio.gather(
                     *[asyncio.create_task(scrape_index(SEARCH_URL, i)) for i in range(1, 10)])  # 1-9
@@ -339,15 +356,16 @@ async def main():
                 result = await asyncio.gather(
                     *[asyncio.create_task(scrape_index(SEARCH_URL, i + 10 * x)) for i in range(0, 10)])  # 10-x9
 
-            # mongoDB写入到本地
             for response in result:
-                temp = await parse(response)  # temp只能为 [item] None(响应失败不处理) 0(无数据维护flag)
-                if temp and temp != 0:
-                    res = await db.insert_many(temp)
-                    logger.info('{} tips of data written in mongDB successfully'.format(len(res.inserted_ids)))
+                items = await parse(response)  # temp只能为 [item] None(响应失败不处理) 0(无数据维护flag)
+                if items and items != 0:
+                    # 写入到mongoDB本地
+                    await db.insert_many(items)
                     flag = True
                 else:
-                    flag = False
+                    i += 1
+                    if i >= 5:
+                        flag = False
 
     await aio_session.close()
     await asyncio.sleep(5)
