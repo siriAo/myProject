@@ -4,7 +4,6 @@
 # @File : search_by_title
 # @Project : myProject
 
-# 问题:代理频率,账号异地检测
 import re
 import json
 import asyncio
@@ -21,7 +20,7 @@ from weiboSpider.asyn.writer import Writer
 
 # START_URL = 'https://m.weibo.cn'
 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-TITLE = '二十大'
+TITLE = ''
 TITLE_POOL = ['疫情', '重庆', '民生', '二十大']
 SEARCH_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D{}&page_type=searchall'.format(
     TITLE)
@@ -113,7 +112,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(levelname)s   %(filename)s [line:%(lineno)d]  %(message)s  %(asctime)s',
     filename='by_title.log',
-    filemode='a',
+    filemode='w',
     encoding='utf-8'
 )
 logger = logging.getLogger()
@@ -202,10 +201,12 @@ async def parse(response):
                     except Exception:
                         continue
 
-                if original_text == '':
-                    continue
                 # 去html标签
-                text = re.sub('<.*?>', '', original_text)
+                try:
+                    text = re.sub('<.*?>', '', original_text)
+                except Exception:
+                    logger.critical('error text={}'.format(original_text))
+                    continue
 
                 # 分离标签并加入返回数组
                 if text and text != '':
@@ -385,4 +386,8 @@ async def main():
 '''
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    for title in TITLE_POOL:
+        TITLE = title
+        SEARCH_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D{}&page_type=searchall'.format(
+            TITLE)
+        asyncio.run(main())
