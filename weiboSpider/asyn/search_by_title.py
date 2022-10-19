@@ -20,7 +20,7 @@ from weiboSpider.asyn.writer import Writer
 
 # START_URL = 'https://m.weibo.cn'
 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-TITLE_POOL = ['疫情', '重庆邮电大学', '重邮', '重庆', '民生', '二十大']
+TITLE_POOL = ['重庆路况', '施工', '重庆交通']  # '疫情', '重庆邮电大学', '重邮', '重庆', '民生', '二十大'
 SEARCH_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D{}&page_type=searchall'
 TOPIC_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D%23{}%23&page_type=searchall'
 MY_HEADERS = [{
