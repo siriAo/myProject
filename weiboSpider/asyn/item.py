@@ -10,7 +10,7 @@ from weiboSpider.asyn.comment import Comment
 class Item:
     def __init__(self, text: str, created_at: str,
                  status_city: str, status_province: str, status_country: str,
-                 user: User, *, topic_list: list[str] | None, bid: str, comments: list[Comment]):
+                 user: User, *, topic_list: [str] or None, bid: str, comments: [Comment]):
         self.text = text
         self.created_at = created_at
         self.status_city = status_city
@@ -38,7 +38,7 @@ class Item:
                 'comments': self.commentstoMongo()
                 }
 
-    def commentstoMongo(self):
+    def commentstoMongo(self) -> [dict]:
         if self.comments:
             return [comment.toMongo() for comment in self.comments]
         else:

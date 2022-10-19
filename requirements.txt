@@ -5,3 +5,5 @@ aiohttp~=3.8.1
 parsel~=1.6.0
 selenium~=4.3.0
 pymongo~=4.2.0
+motor~=3.0.0
+bson~=0.5.10

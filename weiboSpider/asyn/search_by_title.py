@@ -20,12 +20,9 @@ from weiboSpider.asyn.writer import Writer
 
 # START_URL = 'https://m.weibo.cn'
 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-TITLE = ''
-TITLE_POOL = ['疫情', '重庆', '民生', '二十大']
-SEARCH_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D{}&page_type=searchall'.format(
-    TITLE)
-TOPIC_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D%23{}%23&page_type=searchall'.format(
-    TITLE)
+TITLE_POOL = ['疫情', '重庆邮电大学', '重邮', '重庆', '民生', '二十大']
+SEARCH_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D{}&page_type=searchall'
+TOPIC_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D%23{}%23&page_type=searchall'
 MY_HEADERS = [{
     'authority': 'm.weibo.cn',
     'method': 'GET',
@@ -97,12 +94,12 @@ MY_HEADERS = [{
     },
 ]
 
-PROXIES_POOL = ['http://n363.kdltps.com:15818']
+PROXIES_POOL = ['http://l260.kdltps.com:15818']
 # 隧道域名:端口号
 # tunnel = "XXX.XXX.com:15818"
 # 用户名和密码方式
-username = "t16593083247427"
-password = "ldplpa68"
+username = "t16615255753077"
+password = "f4hdoimh"
 proxy_auth = aiohttp.BasicAuth(username, password)
 
 CONCURRENCY = 2
@@ -112,7 +109,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(levelname)s   %(filename)s [line:%(lineno)d]  %(message)s  %(asctime)s',
     filename='by_title.log',
-    filemode='w',
+    filemode='a',
     encoding='utf-8'
 )
 logger = logging.getLogger()
@@ -140,8 +137,8 @@ async def scrape_index(url: str, index=1):
 
 async def scrape_api(url, params):
     """
-    异步的响应数据
-    返回页面源码
+    返回异步的响应数据数据包
+    但不能确保数据有效
     :param params:
     :param url: url prepared to request
     :return: response(str)
@@ -276,7 +273,7 @@ async def create_item(text, root) -> Item | None:
                     User(root['user']['screen_name'], root['user']['id'], root['user']['followers_count']),
                     topic_list=topic, bid=bid, comments=comments)
     except Exception as e:
-        logger.error('Information lost. Text:{}'.format(text))
+        logger.error('Information lost.\nText:{}\nComments:{}'.format(text, comments))
     return item
 
 
@@ -294,7 +291,14 @@ def get_detail(response) -> str | None:
         return original_text
 
 
-async def get_comments(id, mid):
+async def get_comments(id, mid) -> [str] or []:
+    """
+    访问评论API
+    以数组的形式返回数据
+    :param id:
+    :param mid:
+    :return: [str]
+    """
     comments = []
     flag = True
     max_id = 1
@@ -307,26 +311,29 @@ async def get_comments(id, mid):
             response = await scrape_api('https://m.weibo.cn/comments/hotflow',
                                         params={'id': id, 'mid': mid, 'max_id': max_id, 'max_id_type': 0})
         js = json.loads(response[0])
-        max_id = js['data']['max_id']
-        root = js['data']['data']
-        # 处理每一条评论
-        for i in range(len(root)):
-            try:
-                source = target['source']
-            except Exception:
-                source = None
-            target = root[i]
-            bid = target['bid']
-            text = re.sub('<.*?>', '', target['text'])
-            like_count = target['like_count']
-            created_at = target['created_at']
-            comments.append(Comment(bid, text, like_count, created_at, source))
-        if len(comments) > 100:
-            return comments
-    return comments
+        if js['ok'] == 1:
+            max_id = js['data']['max_id']
+            root = js['data']['data']
+            # 处理每一条评论
+            for i in range(len(root)):
+                try:
+                    source = target['source']
+                except Exception:
+                    source = None
+                target = root[i]
+                bid = target['bid']
+                text = re.sub('<.*?>', '', target['text'])
+                like_count = target['like_count']
+                created_at = target['created_at']
+                comments.append(Comment(bid, text, like_count, created_at, source))
+            if len(comments) > 100:
+                return comments
+        else:  # 被拒绝查看评论
+            return []
+    return []
 
 
-# https://m.weibo.cn/detail/4815116816878481
+# https://m.weibo.cn/detail/4815116816878481(id,mid通用API)
 # 正文API:https://m.weibo.cn/statuses/extend?id=4815116816878481
 # 评论API:https://m.weibo.cn/comments/hotflow?id=4815116816878481&mid=4815116816878481&max_id_type=0
 # https://m.weibo.cn/detail/4815108959636382
@@ -344,29 +351,32 @@ async def main():
     global aio_session
     aio_session = aiohttp.ClientSession()
     # aio_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(force_close=True, ssl=False))
-    flag = True  # 没有考虑ip被封的情况下，防止设定访问频数严重超出可响应范围
-    END_INDEX = 999  # 下拉刷新19次
     db = Mongo(db='weibo', collection='title_data')
-    for x in range(END_INDEX):  # 目的是减缓访问频率
-        if flag:
-            i = 0
-            if x == 0:
-                result = await asyncio.gather(
-                    *[asyncio.create_task(scrape_index(SEARCH_URL, i)) for i in range(1, 10)])  # 1-9
-            else:
-                result = await asyncio.gather(
-                    *[asyncio.create_task(scrape_index(SEARCH_URL, i + 10 * x)) for i in range(0, 10)])  # 10-x9
-
-            for response in result:
-                items = await parse(response)  # temp只能为 [item] None(响应失败不处理) 0(无数据维护flag)
-                if items and items != 0:
-                    # 写入到mongoDB本地
-                    await db.insert_many(items)
-                    flag = True
+    end = 999
+    for title in TITLE_POOL:
+        logger.info('\ntitle {} start'.format(title))
+        flag = True  # 没有考虑ip被封的情况下，防止设定访问频数严重超出可响应范围
+        for x in range(end):  # 目的是减缓访问频率
+            if flag:
+                if x == 0:
+                    result = await asyncio.gather(
+                        *[asyncio.create_task(scrape_index(SEARCH_URL.format(title), i)) for i in range(1, 10)])  # 1-9
                 else:
-                    i += 1
-                    if i >= 5:
-                        flag = False
+                    result = await asyncio.gather(
+                        *[asyncio.create_task(scrape_index(SEARCH_URL.format(title), i + 10 * x)) for i in
+                          range(0, 10)])  # 10-x9
+
+                i = 0
+                for response in result:
+                    items = await parse(response)  # temp只能为 [item] None(响应失败不处理) 0(无数据维护flag)
+                    if items and items != 0:
+                        # 写入到mongoDB本地
+                        asyncio.create_task(db.write_in(items))
+                        flag = True
+                    else:
+                        i += 1
+                        if i >= 5:
+                            flag = False
 
     await aio_session.close()
     await asyncio.sleep(5)
@@ -386,8 +396,4 @@ async def main():
 '''
 
 if __name__ == '__main__':
-    for title in TITLE_POOL:
-        TITLE = title
-        SEARCH_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D{}&page_type=searchall'.format(
-            TITLE)
-        asyncio.run(main())
+    asyncio.run(main())
