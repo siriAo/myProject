@@ -20,7 +20,7 @@ from weiboSpider.asyn.writer import Writer
 
 # START_URL = 'https://m.weibo.cn'
 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-TITLE_POOL = ['重庆路况', '施工', '重庆交通']  # '疫情', '重庆邮电大学', '重邮', '重庆', '民生', '二十大'
+TITLE_POOL = ['渝论', '重庆治安', '重庆噪音', '重庆绿化', '重庆不方便的地方', '疫情', '重邮', '重庆', '民生', '二十大', '重庆路况', '施工', '重庆交通', '重庆的问题']  #
 SEARCH_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D{}&page_type=searchall'
 TOPIC_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D%23{}%23&page_type=searchall'
 MY_HEADERS = [{
@@ -109,7 +109,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(levelname)s   %(filename)s [line:%(lineno)d]  %(message)s  %(asctime)s',
     filename='by_title.log',
-    filemode='a',
+    filemode='w',
     encoding='utf-8'
 )
 logger = logging.getLogger()
@@ -146,7 +146,7 @@ async def scrape_api(url, params):
     async with semaphore:  # 限制最大并发
         async with aio_session.get(url, headers=randomizer.choice(MY_HEADERS),
                                    proxy=randomizer.choice(PROXIES_POOL), proxy_auth=proxy_auth,
-                                   params=params, timeout=50) as response:
+                                   params=params, timeout=aiohttp.ClientTimeout(total=60)) as response:
             if response.status == 200:
                 logger.info('{} done successfully'.format(response.url))
                 return await response.text(), response.url
@@ -349,7 +349,7 @@ async def main():
     :return:
     """
     global aio_session
-    aio_session = aiohttp.ClientSession()
+    aio_session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60))
     # aio_session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(force_close=True, ssl=False))
     db = Mongo(db='weibo', collection='title_data')
     end = 999
