@@ -20,7 +20,7 @@ from weiboSpider.asyn.writer import Writer
 
 # START_URL = 'https://m.weibo.cn'
 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-TITLE_POOL = ['渝论', '重庆治安', '重庆噪音', '重庆绿化', '重庆不方便的地方', '疫情', '重邮', '重庆', '民生', '二十大', '重庆路况', '施工', '重庆交通', '重庆的问题']  #
+TITLE_POOL = ['渝论', '重庆治安', '重庆噪音', '重庆绿化', '重庆不方便的地方', '疫情', '重邮', '重庆', '民生', '二十大', '重庆路况', '施工', '重庆交通', '重庆的问题']
 SEARCH_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D{}&page_type=searchall'
 TOPIC_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D%23{}%23&page_type=searchall'
 MY_HEADERS = [{
@@ -94,12 +94,12 @@ MY_HEADERS = [{
     },
 ]
 
-PROXIES_POOL = ['http://l260.kdltps.com:15818']
+PROXIES_POOL = ['http://v677.kdltps.com:15818']
 # 隧道域名:端口号
 # tunnel = "XXX.XXX.com:15818"
 # 用户名和密码方式
-username = "t16615255753077"
-password = "f4hdoimh"
+username = "t16684119323712"
+password = "5t85vy58"
 proxy_auth = aiohttp.BasicAuth(username, password)
 
 CONCURRENCY = 2
