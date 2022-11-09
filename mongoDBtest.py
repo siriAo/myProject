@@ -23,7 +23,8 @@ student = {
     'name': '焦奥',
     'testPoint': {'第一次测验': 100,
                   '第二次测验': 99,
-                  '第三次测验': 98}
+                  '第三次测验': 98,
+                  '第四次测验': 'null'}
 }
 student1 = {
     'id': 'firstExample',
