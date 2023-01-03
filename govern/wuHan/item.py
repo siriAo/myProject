@@ -17,6 +17,11 @@ class Item:
         self.queryCode = queryCode  # tid查询码
         self.typeId = typeId  # 留言类别码
         self.typeId_txt = typeId_txt  # 留言类别（问题反映,咨询等）
+        self.asContent = None  # 回复内容
+        self.organization = None  # 回复组织
+        self.replydateline_txt = None  # 回复时间
+        self.feedbackContent = None  # 题主追问
+        self.feedbackCreateTime = None  # 追问时间
 
     def __str__(self):
         return 'title={}\ncontent={}\ndateline_txt={}\ndomainId_txt={}\nqueryCode={}\nasContent={}\norganization={}'.format(

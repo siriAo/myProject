@@ -12,15 +12,15 @@ import aiohttp
 from opencc import OpenCC
 from random import Random
 
-from util.mongoDB import Mongo
+from weiboSpider.asyn.mongoDB import Mongo
 from weiboSpider.asyn.item import Item
 from weiboSpider.asyn.user import User
 from weiboSpider.asyn.comment import Comment
-from weiboSpider.asyn.writer import Writer
 
 # START_URL = 'https://m.weibo.cn'
 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-TITLE_POOL = ['渝论', '重庆治安', '重庆噪音', '重庆绿化', '重庆不方便的地方', '疫情', '重邮', '重庆', '民生', '二十大', '重庆路况', '施工', '重庆交通', '重庆的问题']
+# TITLE_POOL = ['重庆疫情','渝论', '重庆治安', '重庆噪音', '重庆绿化', '重庆不方便的地方', '疫情', '重邮', '重庆', '民生', '二十大', '重庆路况', '施工', '重庆交通', '重庆的问题']
+TITLE_POOL = ['疫情']
 SEARCH_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D{}&page_type=searchall'
 TOPIC_URL = 'http://m.weibo.cn/api/container/getIndex?containerid=100103type%3D1%26q%3D%23{}%23&page_type=searchall'
 MY_HEADERS = [{
@@ -145,7 +145,7 @@ async def scrape_api(url, params):
     """
     async with semaphore:  # 限制最大并发
         async with aio_session.get(url, headers=randomizer.choice(MY_HEADERS),
-                                   proxy=randomizer.choice(PROXIES_POOL), proxy_auth=proxy_auth,
+                                   # proxy=randomizer.choice(PROXIES_POOL), proxy_auth=proxy_auth,
                                    params=params, timeout=aiohttp.ClientTimeout(total=60)) as response:
             if response.status == 200:
                 logger.info('{} done successfully'.format(response.url))

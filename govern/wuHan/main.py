@@ -14,7 +14,10 @@ from govern.wuHan.mongoDB import Mongo
 URL = 'http://api1.liuyan.cjn.cn/messageboard/internetUserInterface/selectThreadsByGroup'
 DETAIL_URL = 'http://api1.liuyan.cjn.cn/messageboard/internetUserInterface/selectThreadsOne'
 # handleState: 1全部 2办理中 3已回复
-# fid: 6 江岸区已回复 50644 条
+# fid: 6 江岸区已回复 50644 条 8
+#      7 江汉区
+#      8 硚口区
+#      9 汉阳区
 # pageSize=100&pageNum=1& fid=6 & handleState=  &threadState=&
 # pageSize=100&pageNum=2& fid=6 & handleState=3 &threadState=&
 
@@ -65,7 +68,7 @@ def scrape_detail(tid: int):
 
 
 def scrape_api(url, data):
-    time.sleep(RAND.randint(2, 4))
+    time.sleep(RAND.randint(1, 3))
     response = session.post(url, data=data, headers=HEADERS)
     if response.status_code == 200:
         print('{} ok. Data={}'.format(url, data))
@@ -99,26 +102,34 @@ def parse_list(response):
 
 def parse_detail(tid: int):
     response = scrape_detail(tid)
-    target = json.loads(response.text)['threadsObj']['answersList'][0]
-    asContent = target['asContent']  # 回复内容
-    organization = target['organization']  # 回复组织
-    replydateline_txt = target['dateline_txt']  # 回复时间
-    feedbackContent = target['feedbackContent']  # 题主追问
-    feedbackCreateTime = target['feedbackCreateTime']  # 追问时间
-    return asContent, organization, replydateline_txt, feedbackContent, feedbackCreateTime
+    try:
+        target = json.loads(response.text)['threadsObj']['answersList'][0]
+        asContent = target['asContent']  # 回复内容
+        organization = target['organization']  # 回复组织
+        replydateline_txt = target['dateline_txt']  # 回复时间
+        feedbackContent = target['feedbackContent']  # 题主追问
+        feedbackCreateTime = target['feedbackCreateTime']  # 追问时间
+        return asContent, organization, replydateline_txt, feedbackContent, feedbackCreateTime
+    except Exception as e:
+        print(json.loads(response.text)['threadsObj']['answersList'])
+        print('tid={}'.format(tid))
+        return None
 
 
 if __name__ == '__main__':
 
-    endPage = 1013
-    for i in range(211, endPage + 1):
-        response = scrape_list(page=i, fid=6)
+    fid = 9
+    endPage = 1128
+    db_name = 'wuHan_hanYang'
+    for i in range(1070, endPage + 1):
+        response = scrape_list(page=i, fid=fid)
         items = parse_list(response)
         for item in items:
             args = parse_detail(item.queryCode)
-            item.update(*args)
+            if args:
+                item.update(*args)
             item.clean()
             # print(item)
         # 写入MongoDB
-        collection = Mongo(db='govern', collection='wuHan')
+        collection = Mongo(db='govern', collection=db_name)
         collection.insert_many(items)

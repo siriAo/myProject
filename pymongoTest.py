@@ -36,7 +36,8 @@ student2 = {
     'id': 'secondExample',
     'age': 23,
     'name': 'second',
-    'testPoint': {'测验': [100, 99, 98]}
+    'testPoint': {'第一次测验': 101,
+                  '第N次测验': [100, 99, 98]}
 }
 
 # 数据插入
@@ -55,8 +56,20 @@ print(result.inserted_ids)
 # 不建议使用collection.insert
 # result = collection.insert(student)  # return MongoDB产生的ObjectId类型_id数值
 # result = collection.insert([student1, student2])
+print('*' * 50)
+myCursor = collection.find()
+for cursor in myCursor:
+    print(cursor)
 
+myCursor = collection.find()
+for cursor in myCursor:
+    res = collection.find_one_and_update({'_id': ObjectId(cursor['_id'])}, {'$set': {'testPoint.第一次测验': 10000000000}})
+    print(cursor)
 
+myCursor = collection.find()
+for cursor in myCursor:
+    print(cursor)
+print('*' * 50)
 # 数据查询,没有匹配数据return None
 # _id查询
 x = collection.find_one({'_id': ObjectId('634671a934ac2bd4424d5459')})
